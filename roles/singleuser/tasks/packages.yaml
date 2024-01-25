@@ -9,7 +9,8 @@
       - debian-archive-keyring
       - apt-transport-https
       - zfsutils-linux
-      - tigervnc
+      - tigervnc-standalone-server
+      - tigervnc-tools
       - ubuntu-mate-desktop
       - sshfs
       - nfs-common
