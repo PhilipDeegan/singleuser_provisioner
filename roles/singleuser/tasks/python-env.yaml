@@ -10,7 +10,7 @@
   become: true
   become_user: jupyterhub
   ansible.builtin.copy:
-      src: jupyterhub-environment.yml
+      src: singleuser-environment.yml
       dest: /home/jupyterhub/jupyterhub-environment.yml
       remote_src: no
 
