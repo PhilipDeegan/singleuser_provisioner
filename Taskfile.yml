@@ -1,5 +1,16 @@
 version: '3'
 
+env:
+  COREUTILS_VERSION: '9.4'
+  BASH_VERSION: '5'
+  OPENSSH_VERSION: '9.7'
+  ANSIBLE_VERSION: '2.16'
+  PROVISIONER_REPO_PATH: '{{.TASKFILE_DIR}}'
+  PROJECT_REPO_PATH: '{{.ROOT_DIR}}'
+  ANSIBLE_INVENTORY_SCRIPT_PATH: '{{.PROVISIONER_REPO_PATH}}/inventory-ansible.pkgx'
+  ANSIBLE_PLAYBOOKS_PATH: '{{.PROVISIONER_REPO_PATH}}/playbooks'
+  ANSIBLE_ROLES_PATH: '{{.PROVISIONER_REPO_PATH}}/roles'
+
 tasks:
   default:
     silent: true
@@ -8,38 +19,42 @@ tasks:
 
   init:
     cmds:
-      - true
+      - |
+        pkgx +ansible.com^{{.ANSIBLE_VERSION}} ansible-galaxy \
+             collection install community.general
 
   install:
     desc: prepare instance with Ansible playbooks
     cmds:
     - |
-      pkgx +gnu.org/coreutils env \
+      pkgx +gnu.org/coreutils^{{.COREUTILS_VERSION}} env \
            --split-string \
            --ignore-environment \
-           REMOTE_FQDN="${REMOTE_FQDN}" \
-           REMOTE_USER="${REMOTE_USER}" \
-           USER="${USER}" \
-           HOME="${HOME}" \
-           PATH="${HOME}/.pkgx/bin:/bin:/usr/bin:/usr/local/bin" \
-           pkgx +gnu.org/bash^5 bash \
+           REMOTE_FQDN="{{.REMOTE_FQDN}}" \
+           REMOTE_USER="{{.REMOTE_USER}}" \
+           USER="{{.USER}}" \
+           HOME="{{.HOME}}" \
+           PATH="{{.HOME}}/.pkgx/bin:/bin:/usr/bin:/usr/local/bin" \
+           pkgx +gnu.org/bash^{{.BASH_VERSION}} bash \
                 --login \
                 --noprofile \
                 --norc \
                 - <<'EOF'
-                  eval "$(pkgx --shellcode)"
-                  eval "$(ssh-agent)" 2>&1 > /dev/null
-                  ssh-add -q "../{{.CONSTRUCTOR_SSH_KEY_PATH}}" 2>&1 > /dev/null
+                  eval "$(pkgx +openssh.com^{{.OPENSSH_VERSION}} ssh-agent)" 2>&1 > /dev/null
+                  pkgx +openssh.com^{{.OPENSSH_VERSION}} \
+                       ssh-add -q "../{{.CONSTRUCTOR_SSH_KEY_PATH}}" 2>&1 > /dev/null
                   #export ANSIBLE_SSH_USER="{{.REMOTE_USER}}"
                   export HUB_PERSISTENT_VOLUME_PATH="{{.HUB_PERSISTENT_VOLUME_PATH}}"
                   export JUPYTERHUB_FQDN="{{.JUPYTERHUB_FQDN}}"
                   export FILESERVER_EXPORT_PATH="{{.FILESERVER_EXPORT_PATH}}"
-                  export INVENTORY="${PWD}/inventory-ansible.pkgx"
-                  export ANSIBLE_ROLES_PATH="${PWD}/roles"
-                  export ANSIBLE_HOST_KEY_CHECKING=False
+                  export ANSIBLE_ROLES_PATH="{{.ANSIBLE_ROLES_PATH}}"
+                  export ANSIBLE_HOST_KEY_CHECKING=false
                   export ANSIBLE_DEBUG=1
-                  pkgx +ansible.com ansible-playbook \
-                      --inventory "${INVENTORY}" \
-                      -vvv \
-                      "${PWD}/playbooks/main.yaml"
+                  pkgx +ansible.com^{{.ANSIBLE_VERSION}} \
+                       ansible-playbook \
+                       --inventory '{{.ANSIBLE_INVENTORY_SCRIPT_PATH}}' \
+                       -vvv \
+                       '{{.ANSIBLE_PLAYBOOKS_PATH}}/main.yaml'
+                  pkgx +openssh.com^{{.OPENSSH_VERSION}} 
+                       ssh-agent -k 2>&1 > /dev/null
       EOF
