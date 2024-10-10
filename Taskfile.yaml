@@ -1,6 +1,7 @@
 version: '3'
 
 env:
+  TASK_VERSION: '3.35'
   COREUTILS_VERSION: '9.4'
   BASH_VERSION: '5'
   OPENSSH_VERSION: '9.7'
@@ -18,6 +19,7 @@ tasks:
     - task --list
 
   init:
+    desc: initialize
     cmds:
       - |
         pkgx +ansible.com^{{.ANSIBLE_VERSION}} ansible-galaxy \
